@@ -35,7 +35,13 @@ def main(df_path, target_props):
     data_loader_test = DataLoader(molecule_dataset_test, batch_size=config["batch_size"], collate_fn=gcn_collate_fn)
     del molecule_dataset_train, molecule_dataset_test
 
-    model = GraphConvModel(n_input, n_output).to(config["device"])
+    gc_hidden_size_list = [
+        2**config["node_num"] if i % 2 == 0 else 2**config["node_num"]*2 for i in range(config["gc_layer_num"])]
+    affine_hidden_size_list = [
+        2**config["node_num"]*2 if i % 2 == 0 else 2**config["node_num"] for i in range(config["affine_layer_num"])] + [config["last_layer_node_num"]]
+    
+    model = GraphConvModel(n_input, n_output, gc_hidden_size_list, affine_hidden_size_list).to(config["device"])
+
 
     criterion = nn.MSELoss()
 

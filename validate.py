@@ -80,9 +80,9 @@ def objective(trial, x, y, n_input, n_output, target_props):
         model = GraphConvModel(n_input, n_output, gc_hidden_size_list, affine_hidden_size_list).to(config["device"])
 
         criterion = nn.MSELoss()
-
+        
         optimizer = optim.Adam(model.parameters(), lr=config["lr"])
-        model, _ = fit(model, optimizer, criterion, config["n_epoch"], data_loader_train, data_loader_test)
+        model, _ = fit(model, optimizer, criterion, config["n_epoch"], data_loader_train, data_loader_test, is_detect_anomaly=True)
 
         result_train, result_test = predict(model, data_loader_train, data_loader_test)
         df_accuracy_temp = accuracy(target_props, result_train, result_test)

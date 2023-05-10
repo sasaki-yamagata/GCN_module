@@ -19,4 +19,5 @@ class TanhExp(nn.Module):
         self.inplace = inplace
 
     def forward(self, x):
+        x = x - torch.max(x, dim=-1, keepdim=True).values # オーバーフロー対策
         return x * torch.tanh(torch.exp(x))

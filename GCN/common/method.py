@@ -2,6 +2,7 @@ import itertools
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 import pandas as pd
 import subprocess
 import torch
@@ -9,11 +10,17 @@ import torch
 from datetime import datetime
 from pprint import pprint
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from torch.autograd import detect_anomaly
 from GCN.settings import config
 
-logging.basicConfig(level=logging.INFO, filename=f"logs/{datetime.now().strftime('%Y-%m-%d-%H%M%S')}outputs.log", format="%(asctime)s %(levelname)s:%(name)s:%(message)s")
 
-def fit(model, optimizer, criterion, n_epochs, loader_train, loader_test):  
+
+def fit(model, optimizer, criterion, n_epochs, loader_train, loader_test, is_detect_anomaly=False): 
+
+    # ログファイルの作成
+    os.makedirs("logs", exist_ok=True)
+    filename = f"logs/{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.log"
+    logging.basicConfig(level=logging.INFO, filename=filename, format="%(asctime)s %(levelname)s:%(name)s:%(message)s") 
 
    
     batch_size = loader_train.batch_size
@@ -27,25 +34,29 @@ def fit(model, optimizer, criterion, n_epochs, loader_train, loader_test):
         train_loss_accum, test_loss_accum = 0, 0
         model.train()
         # count = 0
-        for x_data_train, y_train in loader_train:
-            x_data_train = x_data_train.to(config["device"])
-            y_train = y_train.to(config["device"])
-            optimizer.zero_grad()
-            # logging.info(f"obs_train: {x_data_train.x}")
-            # logging.info(f"edge_index: {x_data_train.edge_index}")
-            # logging.info(f"feature_size: {x_data_train.feature_size_list}")
-            pre_train = model(x_data_train.x, x_data_train.edge_index, x_data_train.feature_size_list)
-            if torch.isnan(pre_train).any():
-                logging.info(f"epoch: {epoch}, pre_train: {pre_train}, x_train: {x_data_train.x}" )
-                raise ValueError("pre_train contain Nan")
-            train_loss = criterion(pre_train, y_train)
-            train_loss.backward()
-            # logging.info(f"count: {count}, epoch: {epoch}, train-loss: {train_loss}")
-            # print(f"count: {count}, epoch: {epoch}, train-loss: {train_loss}")
-            optimizer.step()
-            train_loss_accum += train_loss.item() * batch_size
-            del train_loss
-            # count += 1
+        if epoch == 4:
+            print(epoch)
+
+        with detect_anomaly(is_detect_anomaly): # バックプロパゲーション中に発生したエラーを検出する
+            for x_data_train, y_train in loader_train:
+                x_data_train = x_data_train.to(config["device"])
+                y_train = y_train.to(config["device"])
+                optimizer.zero_grad()
+                pre_train = model(x_data_train.x, x_data_train.edge_index, x_data_train.feature_size_list)
+
+                # epochごとに重み保存
+                torch.save(model.state_dict(), f"logs/epoch_{epoch}.pth")
+                if torch.isnan(pre_train).any():
+                    logging.info(f"epoch: {epoch}, pre_train: {torch.isnan(pre_train).any()}, x_train: {torch.isnan(x_data_train.x).any()}" )
+                    raise ValueError("pre_train contain Nan")
+                train_loss = criterion(pre_train, y_train)
+
+                train_loss.backward()
+
+                optimizer.step()
+                train_loss_accum += train_loss.item() * batch_size
+                del train_loss
+                # count += 1
 
         if epoch == 1 or (epoch) % 10 == 0:
             model.eval()

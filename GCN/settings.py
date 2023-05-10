@@ -31,6 +31,14 @@ def get_config(debug=False):
             バッチサイズを指定
         n_splits : integer
             交差検証する際の分割数を指定
+        gc_layer_num : integer
+            GCNの層数を指定
+        affine_layer_num : integer
+            線形回帰の層数を指定
+        node_num : integer
+            ノード数を指定 
+        last_layer_node_num : integer
+            最後の層のノード数を指定
     """
     
     if debug:
@@ -45,7 +53,7 @@ def get_config(debug=False):
             "gc_layer_num" : 3,
             "affine_layer_num" : 2,
             "node_num" : 4,
-            "last_layer_node_num" : 6,
+            "last_layer_node_num" : 6
         }
         
     else:
@@ -54,16 +62,20 @@ def get_config(debug=False):
             "end": None,
             "device": 'cuda' if torch.cuda.is_available() else 'cpu',
             "n_epoch": 50,
-            "lr": 0.001,
+            "lr": 0.001	,
             "batch_size" : 50,
-            "n_splits": 3 # 交差検証のときのみ使用  
+            "n_splits": 3, # 交差検証のときのみ使用 
+            "gc_layer_num" : 3,
+            "affine_layer_num" : 1,
+            "node_num" : 6	,
+            "last_layer_node_num" : 9 
         }
-        
+        # [50, 0.000875, 50, 3, 5, 8, 6, 10] 5epochでnanが検出されたハイパーパラメータ
 
     print(f"-------------  Device in this enviroment is {config['device']} -------------")
     return config
 
-config = get_config(debug=True)
+config = get_config(debug=False)
 
 
 
