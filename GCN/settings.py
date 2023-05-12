@@ -75,7 +75,7 @@ def get_config(debug=False):
     print(f"-------------  Device in this enviroment is {config['device']} -------------")
     return config
 
-config = get_config(debug=False)
+config = get_config(debug=True)
 
 
 

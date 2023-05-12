@@ -1,3 +1,4 @@
+import torch
 from datetime import datetime
 
 from torch import nn
@@ -9,39 +10,39 @@ from ..layers.graph_conv_layer import GraphGather, TanhExp
 class GraphConvModel(nn.Module):
     def __init__(self, n_input, n_output, gc_hidden_size_list, affine_hidden_size_list):
         super().__init__()
-
+        activation = TanhExp.apply
         conv_layers = []
         for i in range(len(gc_hidden_size_list)):
             if i == 0:
                 conv_layers.append((GCNConv(n_input, gc_hidden_size_list[i]), "x, edge_index -> x"))
-                conv_layers.append(TanhExp(inplace=True))
+                conv_layers.append(activation)
             else:
                 conv_layers.append((GCNConv(gc_hidden_size_list[i-1], gc_hidden_size_list[i]), "x, edge_index -> x"))
-                conv_layers.append(TanhExp(inplace=True))
+                conv_layers.append(activation)
                 # setattr(self, f"conv{num}", GCNConv(gc_hidden_size_list[i-1], gc_hidden_size_list[i]))
         liner_layers = []
         for i in range(len(affine_hidden_size_list)):
             if i == 0:
-                liner_layers.append(nn.Linear(gc_hidden_size_list[-1], affine_hidden_size_list[i]))
-                liner_layers.append(TanhExp(inplace=True))
+                liner_layers.append((nn.Linear(gc_hidden_size_list[-1], affine_hidden_size_list[i]), "x -> x"))
+                liner_layers.append(activation)
                 # setattr(self, f"l{num}", nn.Linear(gc_hidden_size_list[-1], affine_hidden_size_list[i]))
 
             elif i == len(affine_hidden_size_list) - 1:
-                liner_layers.append(nn.Linear(affine_hidden_size_list[i-1], affine_hidden_size_list[i]))
-                liner_layers.append(TanhExp(inplace=True))
-                liner_layers.append(nn.Linear(affine_hidden_size_list[i], n_output))
+                liner_layers.append((nn.Linear(affine_hidden_size_list[i-1], affine_hidden_size_list[i]), "x -> x"))
+                liner_layers.append(activation)
+                liner_layers.append((nn.Linear(affine_hidden_size_list[i], n_output), "x -> x"))
 
                 # setattr(self, f"l{num}", nn.Linear(affine_hidden_size_list[i-1], affine_hidden_size_list[i]))
                 # setattr(self, f"l{num}", nn.Linear(affine_hidden_size_list[i], n_output))
             else:
-                liner_layers.append(nn.Linear(affine_hidden_size_list[i-1], affine_hidden_size_list[i]))
-                liner_layers.append(TanhExp(inplace=True))
+                liner_layers.append((nn.Linear(affine_hidden_size_list[i-1], affine_hidden_size_list[i]), "x -> x"))
+                liner_layers.append(activation)
                 # setattr(self, f"l{num}", nn.Linear(affine_hidden_size_list[i-1], affine_hidden_size_list[i]))
         
         
         self.conv = Sequential("x, edge_index", conv_layers)
         self.gather = GraphGather()
-        self.linear = nn.Sequential(*liner_layers)
+        self.linear = Sequential("x", liner_layers)
         # self.conv = nn.Sequential(
         #     self.conv1,
         #     self.tanhexp, 

@@ -10,7 +10,7 @@ import torch
 from datetime import datetime
 from pprint import pprint
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from torch.autograd import detect_anomaly
+from torch.autograd import set_detect_anomaly
 from GCN.settings import config
 
 
@@ -37,26 +37,26 @@ def fit(model, optimizer, criterion, n_epochs, loader_train, loader_test, is_det
         if epoch == 4:
             print(epoch)
 
-        with detect_anomaly(is_detect_anomaly): # バックプロパゲーション中に発生したエラーを検出する
-            for x_data_train, y_train in loader_train:
-                x_data_train = x_data_train.to(config["device"])
-                y_train = y_train.to(config["device"])
-                optimizer.zero_grad()
-                pre_train = model(x_data_train.x, x_data_train.edge_index, x_data_train.feature_size_list)
+        set_detect_anomaly(is_detect_anomaly) # バックプロパゲーション中に発生したエラーを検出する
+        for x_data_train, y_train in loader_train:
+            x_data_train = x_data_train.to(config["device"])
+            y_train = y_train.to(config["device"])
+            optimizer.zero_grad()
+            pre_train = model(x_data_train.x, x_data_train.edge_index, x_data_train.feature_size_list)
 
-                # epochごとに重み保存
-                torch.save(model.state_dict(), f"logs/epoch_{epoch}.pth")
-                if torch.isnan(pre_train).any():
-                    logging.info(f"epoch: {epoch}, pre_train: {torch.isnan(pre_train).any()}, x_train: {torch.isnan(x_data_train.x).any()}" )
-                    raise ValueError("pre_train contain Nan")
-                train_loss = criterion(pre_train, y_train)
+            # epochごとに重み保存
+            # torch.save(model.state_dict(), f"logs/epoch_{epoch}.pth")
+            if torch.isnan(pre_train).any():
+                logging.info(f"epoch: {epoch}, pre_train: {torch.isnan(pre_train).any()}, x_train: {torch.isnan(x_data_train.x).any()}" )
+                raise ValueError("pre_train contain Nan")
+            train_loss = criterion(pre_train, y_train)
 
-                train_loss.backward()
+            train_loss.backward()
 
-                optimizer.step()
-                train_loss_accum += train_loss.item() * batch_size
-                del train_loss
-                # count += 1
+            optimizer.step()
+            train_loss_accum += train_loss.item() * batch_size
+            del train_loss
+            # count += 1
 
         if epoch == 1 or (epoch) % 10 == 0:
             model.eval()

@@ -82,7 +82,7 @@ def objective(trial, x, y, n_input, n_output, target_props):
         criterion = nn.MSELoss()
         
         optimizer = optim.Adam(model.parameters(), lr=config["lr"])
-        model, _ = fit(model, optimizer, criterion, config["n_epoch"], data_loader_train, data_loader_test, is_detect_anomaly=True)
+        model, _ = fit(model, optimizer, criterion, config["n_epoch"], data_loader_train, data_loader_test, is_detect_anomaly=False)
 
         result_train, result_test = predict(model, data_loader_train, data_loader_test)
         df_accuracy_temp = accuracy(target_props, result_train, result_test)

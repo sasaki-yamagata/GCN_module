@@ -13,11 +13,30 @@ class GraphGather(nn.Module):
         
 
 
-class TanhExp(nn.Module):
+class TanhExp(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, x):
+        ctx.save_for_backward(x)
+        return x * torch.tanh(torch.exp(x))
+    
+    @staticmethod
+    def backward(ctx, dout):
+        x, = ctx.saved_tensors
+        exp_x = torch.exp(x)
+        inf_mask = torch.isinf(exp_x)
+        dx_over_dout_temp = torch.zeros(x.shape).to(config["device"])
+        dx_over_dout_temp[~inf_mask] = (x * (exp_x * (torch.tanh(exp_x)**2 - 1)))[~inf_mask]
+        dx_over_dout_temp[inf_mask] = 0
+        dx_over_dout = torch.tanh(exp_x) - dx_over_dout_temp
+        dx = dout * dx_over_dout
+        return dx
+    
+
+class Swish(nn.Module):
     def __init__(self, inplace: bool = False):
         super().__init__()
         self.inplace = inplace
 
     def forward(self, x):
-        x = x - torch.max(x, dim=-1, keepdim=True).values # オーバーフロー対策
-        return x * torch.tanh(torch.exp(x))
+        return x * torch.sigmoid(x)
